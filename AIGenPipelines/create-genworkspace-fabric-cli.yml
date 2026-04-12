@@ -1,0 +1,92 @@
+trigger: none
+
+pool:
+  vmImage: windows-latest
+
+variables:
+- group: fabric-cicd-ns
+- group: fabric-cicd-s
+- name: WorkspaceName
+  value: GenWorkspace
+- name: TargetEnvironment
+  value: Test
+
+stages:
+- stage: EnsureWorkspace
+  displayName: Ensure Fabric Workspace and Access
+  jobs:
+  - job: EnsureWorkspace
+    displayName: Ensure Workspace and Admin ACL
+    steps:
+    - task: UsePythonVersion@0
+      displayName: Use Python 3.12
+      inputs:
+        versionSpec: 3.12
+
+    - task: PowerShell@2
+      displayName: Install Fabric CLI
+      inputs:
+        targetType: inline
+        pwsh: true
+        script: |
+          python -m pip install --upgrade pip
+          pip install ms-fabric-cli
+
+    - task: PowerShell@2
+      displayName: Authenticate with service principal
+      inputs:
+        targetType: inline
+        pwsh: true
+        script: |
+          fab auth status
+          fab auth login -u $(azure_client_id) -p $(azure_client_secret) --tenant $(azure_tenant_id)
+
+    - task: PowerShell@2
+      displayName: Ensure workspace exists
+      inputs:
+        targetType: inline
+        pwsh: true
+        script: |
+          $workspacePath = "$(WorkspaceName).Workspace"
+          $existsOutput = (fab exists $workspacePath | Out-String).Trim().ToLowerInvariant()
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to check whether workspace exists: $workspacePath"
+          }
+
+          if ($existsOutput -eq "true") {
+            Write-Host "Workspace already exists: $workspacePath"
+          }
+          else {
+            Write-Host "Workspace does not exist. Creating: $workspacePath"
+            fab create $workspacePath -P capacityname=$(CapacityName)
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Workspace creation failed: $workspacePath"
+            }
+          }
+
+    - task: PowerShell@2
+      displayName: Ensure admin permission
+      inputs:
+        targetType: inline
+        pwsh: true
+        script: |
+          $workspacePath = "$(WorkspaceName).Workspace"
+          fab acl set $workspacePath -I $(EntraObjectId) -R admin -f
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to set admin ACL for workspace: $workspacePath"
+          }
+
+    - task: PowerShell@2
+      displayName: Deploy workspace items with Fabric CLI
+      inputs:
+        targetType: inline
+        pwsh: true
+        script: |
+          fab deploy --config "$(Build.SourcesDirectory)/workspace/config.yml" --target_env "$(TargetEnvironment)" -f
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Fabric CLI deploy failed for target environment: $(TargetEnvironment)"
+          }
