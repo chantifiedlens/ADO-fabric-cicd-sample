@@ -1,0 +1,49 @@
+# Sample configuration file for fabric-cicd deployment
+# This file demonstrates the YAML configuration structure for simplified deployment workflow
+# NOTE: This is a sample configuration file. Please update the values according to your environment and requirements before running the YAML Pipeline.
+
+core: # Core configurations
+  # Either workspace or workspace_id must be provided
+  workspace: # Workspace names by environment
+    test: fabric-cicd-config-test # Must be a valid workspace name
+    prod: fabric-cicd-config-prod
+
+# Commented out to show workspace name usage
+  workspace_id: # Workspace IDs by environment (takes precedence over workspace if both are provided)
+    test:  {Workspace GUID value}
+    prod: {Workspace GUID value}
+
+  repository_directory: "."  # Path to workspace items directory (relative to config.yml location) (required)
+
+  item_types_in_scope:  # Item types to include in deployment (optional)
+    - VariableLibrary
+    - Dataflow
+    - DataPipeline
+    - Notebook
+    - Environment
+    - Report
+    - SemanticModel
+    - MirroredDatabase
+    - Lakehouse
+
+  parameter: "parameter.yml" # Path to parameter file (relative to config.yml location) (optional)
+
+publish: # Publish configuration (optional)
+  exclude_regex: "^NotThisitem*."  # Regex pattern to exclude items from publishing
+
+  skip:  # Skip publishing for specific environments
+    test: false # Enable publishing in test environment
+    prod: false # Enable publishing in prod environment
+
+unpublish: # Unpublish configuration (optional)
+  exclude_regex: "^DEBUG.*"  # Regex pattern to exclude items from unpublishing
+
+  skip:  # Skip unpublishing for specific environments
+    test: true # Enable unpublishing in test environment
+    prod: false # Enable unpublishing in prod environment
+
+# features:  # Feature flags to enable (optional)
+  # - enable_shortcut_publish
+
+constants:  # Global constants to override (optional)
+  DEFAULT_API_ROOT_URL: "https://msitapi.fabric.microsoft.com"
