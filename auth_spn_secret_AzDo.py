@@ -8,7 +8,7 @@ Can be expanded to retrieve values from Key Vault or other sources
 # Kevin Chant has extended this!!!
 # START-EXAMPLE
 # import from fabric_cicd and azure.identity to pass-through service principal
-# from azure.identity import DefaultAzureCredential
+from azure.identity import AzureCliCredential
 from fabric_cicd import FabricWorkspace, publish_all_items, unpublish_all_orphan_items
 import argparse
 # import os
@@ -20,6 +20,9 @@ parser.add_argument('--Environment', type=str)
 parser.add_argument('--RepositoryDirectory', type=str)
 parser.add_argument('--ItemsInScope', type=str)
 args = parser.parse_args()
+
+# Use Azure CLI credential to authenticate
+token_credential = AzureCliCredential()
 
 # Convert item_type_in_scope into a list
 allitems = args.ItemsInScope
